@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
 )
 
+from .profiles import ProfileDB
 from .ui_tools import UITools
 
 
@@ -17,6 +18,8 @@ class MainWindow(QMainWindow):
     def __init__(self, client_factory, on_submit: Callable):
         super().__init__()
         self.client_factory = client_factory
+        self.profile_db = ProfileDB()
+
         # Don't need to set the below parameters as we're not saving any data
         self.ui_tools = UITools(None, None)
 
@@ -33,16 +36,27 @@ class MainWindow(QMainWindow):
 
         self.layout = QVBoxLayout()
 
+        # Dropdown for selecting profiles
+        v_layout = QVBoxLayout()
+        v_layout.addWidget(self.ui_tools.create_label("Select Profile:"))
+        self.profile_selector = QComboBox()
+        all_profiles = self.profile_db.get_all_profiles()
+        self.profile_selector.addItems(all_profiles)
+        self.profile_selector.setCurrentIndex(
+            all_profiles.index(self.profile_db.get_current_profile())
+        )
+        self.profile_selector.currentIndexChanged.connect(self.switch_profile)
+        self.profile_selector.setFixedWidth(200)
+        v_layout.addWidget(self.profile_selector)
+
         # Dropdown for selecting clients
-        h_layout = QHBoxLayout()
-        h_layout.addWidget(self.ui_tools.create_label("Select LLM:"))
+        v_layout.addWidget(self.ui_tools.create_label("Select LLM:"))
         self.client_selector = QComboBox()
         self.client_selector.addItems(client_factory.valid_clients)
         self.client_selector.currentIndexChanged.connect(self.switch_client)
         self.client_selector.setFixedWidth(200)
-        h_layout.addWidget(self.client_selector)
-        h_layout.addStretch()
-        self.layout.addLayout(h_layout)
+        v_layout.addWidget(self.client_selector)
+        self.layout.addLayout(v_layout)
 
         # Container for the clients' sublayout
         client_ui_container = QWidget()
@@ -59,7 +73,7 @@ class MainWindow(QMainWindow):
         self.client_selector.setCurrentIndex(
             client_factory.valid_clients.index(client_factory.client_name)
         )
-        self.switch_client()
+        self.switch_profile()
 
         buttons = (
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -68,6 +82,14 @@ class MainWindow(QMainWindow):
         button_box.accepted.connect(lambda: self.accept(on_submit))
         button_box.rejected.connect(self.close)
         self.layout.addWidget(button_box)
+
+    def switch_profile(self):
+        current_profile = self.profile_db.get_current_profile()
+        llm_client_name = self.profile_db.get_llm_client_name(current_profile)
+        self.client_selector.setCurrentIndex(
+            self.client_factory.valid_clients.index(llm_client_name)
+        )
+        self.switch_client()
 
     def switch_client(self):
         client_name = self.client_selector.currentText()

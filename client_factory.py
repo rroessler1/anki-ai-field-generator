@@ -28,6 +28,7 @@ class ClientFactory:
 
     def __init__(self, browser):
         self.app_settings, self.client_name = get_settings()
+        self.client_name = "Claude" # TODO
         self.browser = browser
         self.notes = [
             browser.mw.col.get_note(note_id) for note_id in browser.selectedNotes()
