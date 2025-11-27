@@ -13,7 +13,6 @@ class ClaudeClient(LLMClient):
     def __init__(self, prompt_config: PromptConfig):
         super(LLMClient, self).__init__()
         self._prompt_config = prompt_config
-        self.debug = False
         self.next_request_time = 0
         self.retry_after_time = 0
 
@@ -32,6 +31,7 @@ class ClaudeClient(LLMClient):
         }
         user_input = "\n\n".join(prompts)
         if self.debug:
+            print("Claude Client Debug Info:")
             print(f"Content String: {user_input}\n")
             print(f"System Prompt: {self.prompt_config.system_prompt}\n")
         data = {

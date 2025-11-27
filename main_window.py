@@ -144,7 +144,11 @@ class MainWindow(QMainWindow):
     def switch_profile(self):
         current_profile = self.profile_selector.currentText()
         self.profile_db._save_profile_as_currently_selected(current_profile)
+        profile_data = self.profile_db.load_profile_data()
+        self.client_factory.update_user_settings(profile_data)
         llm_client_name = self.profile_db.get_llm_client_name()
+        if not llm_client_name:
+            raise AssertionError("LLM client name not found in profile data.")
         if llm_client_name:
             self.client_selector.setCurrentIndex(
                 self.client_factory.valid_clients.index(llm_client_name)
@@ -158,7 +162,10 @@ class MainWindow(QMainWindow):
             # Not strictly necessary, but better for memory management
             self.current_client_widget.deleteLater()
 
-        self.client_factory.update_user_settings(self.get_all_user_json_settings())
+        # self.client_factory.update_user_settings(self.get_all_user_json_settings())
+        self.client_factory.update_client(
+            self.client_selector.currentText()
+        )
         self.current_client_widget = self.client_factory.get_dialog()
         self.client_ui_layout.addWidget(self.current_client_widget)
         self.current_client_widget.show()

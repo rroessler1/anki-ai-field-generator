@@ -14,7 +14,6 @@ class OpenAIClient(LLMClient):
     def __init__(self, prompt_config: PromptConfig):
         super(LLMClient, self).__init__()
         self._prompt_config = prompt_config
-        self.debug = False
         self.next_request_time = 0
         self.retry_after_time = 0
 
@@ -33,6 +32,7 @@ class OpenAIClient(LLMClient):
         # This supports multiple prompts (newline-separated) if we switch back to batch processing.
         user_input = "\n\n".join(prompts)
         if self.debug:
+            print("OpenAI Client Debug Info:")
             print(f"Content String: {user_input}\n")
             print(f"System Prompt: {self.prompt_config.system_prompt}\n")
         data = {

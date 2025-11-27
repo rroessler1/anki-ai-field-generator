@@ -10,6 +10,7 @@ class LLMClient(ABC):
     """
     Generic interface for a LLM client.
     """
+    debug: bool = True
 
     @property
     @abstractmethod

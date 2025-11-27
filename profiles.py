@@ -84,12 +84,8 @@ class ProfileDB:
         profile_name = self.get_current_profile_name()
         config_key = self._get_profile_data_config_key(profile_name)
         config_json = self.app_settings.value(config_key)
-        print(f"Loaded profile data for '{profile_name}' and key '{config_key}': {config_json}")
         if config_json is None:
-            print("Config JSON is None, returning empty dict.")
-        assert (
-            config_json is not None
-        ), f"Profile data for '{profile_name}' should exist."
+            raise AssertionError(f"Profile data for '{profile_name}' should exist.")
         return json.loads(config_json)
 
     def save_profile_data(
