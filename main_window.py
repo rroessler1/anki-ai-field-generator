@@ -21,10 +21,12 @@ from .user_base_dialog import UserBaseDialog
 class MainWindow(QMainWindow):
     def __init__(self, client_factory, on_submit: Callable):
         super().__init__()
+        # The client factory is already initialized with the current profile
         self.client_factory = client_factory
         self.profile_db = ProfileDB()
 
-        # Don't need to set the below parameters as we're not saving any data
+        # In MainWindow, UITools is only used for creating labels
+        # Therefore we can initialize it with None values
         self.ui_tools = UITools(None, None)
 
         self.setWindowTitle("Anki AI - Update Your Flashcards with AI")
@@ -90,7 +92,7 @@ class MainWindow(QMainWindow):
         client_ui_container.setLayout(self.client_ui_layout)
         self.layout.addWidget(client_ui_container)
         # Placeholder for the client sublayout
-        self.current_client_widget: UserBaseDialog = None
+        self.current_client_widget: UserBaseDialog = client_factory.get_dialog()
 
         central_widget.setLayout(self.layout)
 

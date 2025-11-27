@@ -8,7 +8,7 @@ from .profiles import ProfileDB
 
 def on_setup_menus(browser):
     def display_ui():
-        client_factory = ClientFactory(browser, ProfileDB())
+        client_factory = ClientFactory(browser, ProfileDB().load_profile_data())
         client_factory.show()
 
     menu = QMenu("Anki AI", browser.form.menubar)
