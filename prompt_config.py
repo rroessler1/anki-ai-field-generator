@@ -1,6 +1,6 @@
 import re
 
-from aqt.qt import QSettings
+from typing import Dict
 
 from .settings import SettingsNames
 
@@ -10,8 +10,8 @@ class PromptConfig:
     Stores all the user configuration needed to create a prompt and parse the response
     """
 
-    def __init__(self, settings: QSettings):
-        self.settings: QSettings = settings
+    def __init__(self, settings: Dict[str, str]):
+        self.settings: Dict[str, str] = settings
         if self.settings:
             self._load_settings()
 
@@ -27,26 +27,17 @@ class PromptConfig:
         obj.required_fields = obj._extract_text_between_braces(obj.user_prompt)
         return obj
 
-    def refresh(self) -> None:
-        self._load_settings()
-
     def _load_settings(self) -> None:
-        self.api_key: str = self.settings.value(
-            SettingsNames.API_KEY_SETTING_NAME, defaultValue="", type=str
+        self.api_key: str = self.settings.get(SettingsNames.API_KEY_SETTING_NAME, "")
+        self.model: str = self.settings.get(SettingsNames.MODEL_SETTING_NAME, "")
+        self.system_prompt: str = self.settings.get(
+            SettingsNames.SYSTEM_PROMPT_SETTING_NAME, ""
         )
-        self.model: str = self.settings.value(
-            SettingsNames.MODEL_SETTING_NAME, defaultValue="", type=str
+        self.user_prompt: str = self.settings.get(
+            SettingsNames.USER_PROMPT_SETTING_NAME, ""
         )
-        self.system_prompt: str = self.settings.value(
-            SettingsNames.SYSTEM_PROMPT_SETTING_NAME, defaultValue="", type=str
-        )
-        self.user_prompt: str = self.settings.value(
-            SettingsNames.USER_PROMPT_SETTING_NAME, defaultValue="", type=str
-        )
-        self.response_keys: list[str] = self.settings.value(
-            SettingsNames.RESPONSE_KEYS_SETTING_NAME,
-            defaultValue=[],
-            type="QStringList",
+        self.response_keys: list[str] = self.settings.get(
+            SettingsNames.RESPONSE_KEYS_SETTING_NAME, []
         )
         self.required_fields: list[str] = self._extract_text_between_braces(
             self.user_prompt

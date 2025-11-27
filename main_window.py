@@ -3,13 +3,16 @@ from PyQt6.QtWidgets import (
     QApplication,
     QDialogButtonBox,
     QHBoxLayout,
+    QInputDialog,
     QMainWindow,
+    QPushButton,
     QWidget,
     QVBoxLayout,
     QComboBox,
 )
 
 from .profiles import ProfileDB
+from .settings import SettingsNames
 from .ui_tools import UITools
 
 
@@ -37,26 +40,47 @@ class MainWindow(QMainWindow):
         self.layout = QVBoxLayout()
 
         # Dropdown for selecting profiles
-        v_layout = QVBoxLayout()
-        v_layout.addWidget(self.ui_tools.create_label("Select Profile:"))
+        profile_options_layout = QHBoxLayout()
+        profile_options_layout.addWidget(self.ui_tools.create_label("Select Profile:"))
         self.profile_selector = QComboBox()
         all_profiles = self.profile_db.get_all_profiles()
         self.profile_selector.addItems(all_profiles)
         self.profile_selector.setCurrentIndex(
-            all_profiles.index(self.profile_db.get_current_profile())
+            all_profiles.index(self.profile_db.get_current_profile_name())
         )
         self.profile_selector.currentIndexChanged.connect(self.switch_profile)
         self.profile_selector.setFixedWidth(200)
-        v_layout.addWidget(self.profile_selector)
+        profile_options_layout.addWidget(self.profile_selector)
+
+        # Buttons
+        create_btn = QPushButton("Create")
+        create_btn.setFixedWidth(80)
+        create_btn.clicked.connect(self.create_profile)
+        profile_options_layout.addWidget(create_btn)
+
+        save_btn = QPushButton("Save")
+        save_btn.setFixedWidth(80)
+        save_btn.clicked.connect(self.save_profile)
+        profile_options_layout.addWidget(save_btn)
+
+        delete_btn = QPushButton("Delete")
+        delete_btn.setFixedWidth(80)
+        delete_btn.clicked.connect(self.delete_profile)
+        profile_options_layout.addWidget(delete_btn)
+
+        profile_options_layout.addStretch()
+        self.layout.addLayout(profile_options_layout)
 
         # Dropdown for selecting clients
-        v_layout.addWidget(self.ui_tools.create_label("Select LLM:"))
+        llm_options_layout = QHBoxLayout()
+        llm_options_layout.addWidget(self.ui_tools.create_label("Select LLM:"))
         self.client_selector = QComboBox()
         self.client_selector.addItems(client_factory.valid_clients)
         self.client_selector.currentIndexChanged.connect(self.switch_client)
         self.client_selector.setFixedWidth(200)
-        v_layout.addWidget(self.client_selector)
-        self.layout.addLayout(v_layout)
+        llm_options_layout.addWidget(self.client_selector)
+        llm_options_layout.addStretch()
+        self.layout.addLayout(llm_options_layout)
 
         # Container for the clients' sublayout
         client_ui_container = QWidget()
@@ -83,13 +107,46 @@ class MainWindow(QMainWindow):
         button_box.rejected.connect(self.close)
         self.layout.addWidget(button_box)
 
-    def switch_profile(self):
-        current_profile = self.profile_db.get_current_profile()
-        llm_client_name = self.profile_db.get_llm_client_name(current_profile)
-        self.client_selector.setCurrentIndex(
-            self.client_factory.valid_clients.index(llm_client_name)
+    def create_profile(self):
+        profile_name, ok = QInputDialog.getText(
+            self, "Create New Profile", "Enter profile name:"
         )
-        self.switch_client()
+        if ok and profile_name:
+            self.profile_db.create_new_profile(profile_name)
+            # TODO: can try calling self.layout.update() instead
+            self.profile_selector.addItem(profile_name)
+            self.profile_selector.setCurrentText(profile_name)
+            # TODO: check
+            # self.switch_profile()
+
+    def delete_profile(self):
+        current_profile = self.profile_selector.currentText()
+        self.profile_db.delete_profile(current_profile)
+        self.profile_selector.removeItem(self.profile_selector.currentIndex())
+        new_profile = self.profile_db.get_current_profile_name()
+        self.profile_selector.setCurrentText(new_profile)
+        # TODO: check
+        # self.switch_profile()
+
+    def save_profile(self):
+        json_settings = self.current_client_widget.create_json_settings()
+        # TODO: this shouldn't be both here and in profiles.py, it's messy
+        json_settings[SettingsNames.LLM_CLIENT_NAME] = (
+            self.client_selector.currentText()
+        )
+        self.profile_db.save_profile_data(
+            self.profile_selector.currentText(), json_settings
+        )
+
+    def switch_profile(self):
+        current_profile = self.profile_selector.currentText()
+        self.profile_db._save_user_active_profile(current_profile)
+        llm_client_name = self.profile_db.get_llm_client_name()
+        if llm_client_name:
+            self.client_selector.setCurrentIndex(
+                self.client_factory.valid_clients.index(llm_client_name)
+            )
+            self.switch_client()
 
     def switch_client(self):
         client_name = self.client_selector.currentText()

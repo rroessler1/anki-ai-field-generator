@@ -1,6 +1,7 @@
 from anki.notes import Note as AnkiNote
-from aqt.qt import QSettings
 from PyQt6.QtCore import QThread, pyqtSignal
+
+from typing import Dict
 
 from .exceptions import ExternalException
 from .llm_client import LLMClient
@@ -20,19 +21,19 @@ class NoteProcessor(QThread):
         self,
         notes: list[AnkiNote],
         client: LLMClient,
-        settings: QSettings,  # might be cleaner to pass in the fields we need directly, not sure,
+        settings: Dict[
+            str, str
+        ],  # might be cleaner to pass in the fields we need directly, not sure,
         missing_field_is_error: bool = False,
     ):
         super().__init__()
         self.notes = notes
         self.total_items = len(notes)
         self.client = client
-        self.note_fields = settings.value(
-            SettingsNames.DESTINATION_FIELD_SETTING_NAME, type="QStringList"
+        self.note_fields = settings.get(
+            SettingsNames.DESTINATION_FIELD_SETTING_NAME, []
         )
-        self.response_keys = settings.value(
-            SettingsNames.RESPONSE_KEYS_SETTING_NAME, type="QStringList"
-        )
+        self.response_keys = settings.get(SettingsNames.RESPONSE_KEYS_SETTING_NAME, [])
         self.missing_field_is_error = missing_field_is_error
         self.current_index = 0
 

@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
+from typing import Dict
 from anki.notes import Note as AnkiNote
 from aqt.qt import (
-    QSettings,
     QWidget,
     QHBoxLayout,
     QMessageBox,
@@ -27,12 +27,14 @@ class MyMeta(ABCMeta, type(QtCore.QObject)):
 
 
 class UserBaseDialog(QWidget, metaclass=MyMeta):
-    def __init__(self, app_settings: QSettings, selected_notes: list[AnkiNote]):
+    def __init__(
+        self, profile_settings: Dict[str, str], selected_notes: list[AnkiNote]
+    ):
         super().__init__()
         self._width = 500
-        self.app_settings: QSettings = app_settings
         self.selected_notes = selected_notes
-        self.ui_tools: UITools = UITools(app_settings, self._width)
+        self.user_settings = profile_settings
+        self.ui_tools: UITools = UITools(profile_settings, self._width)
 
     def show(self):
         if self.layout() is not None:
@@ -85,12 +87,8 @@ class UserBaseDialog(QWidget, metaclass=MyMeta):
             self.ui_tools.create_descriptive_text(self.mapping_instruction_text)
         )
         self.two_col_form = DynamicForm(
-            self.app_settings.value(
-                SettingsNames.RESPONSE_KEYS_SETTING_NAME, type="QStringList"
-            ),
-            self.app_settings.value(
-                SettingsNames.DESTINATION_FIELD_SETTING_NAME, type="QStringList"
-            ),
+            self.user_settings.get(SettingsNames.RESPONSE_KEYS_SETTING_NAME, []),
+            self.user_settings.get(SettingsNames.DESTINATION_FIELD_SETTING_NAME, []),
             card_fields,
         )
         right_layout.addWidget(self.two_col_form)
@@ -197,21 +195,25 @@ class UserBaseDialog(QWidget, metaclass=MyMeta):
         """
         if not self.are_settings_valid():
             return False
-        self.ui_tools.save_settings()
-        keys, fields = self.two_col_form.get_inputs()
-        self.app_settings.setValue(SettingsNames.RESPONSE_KEYS_SETTING_NAME, keys)
-        self.app_settings.setValue(
-            SettingsNames.DESTINATION_FIELD_SETTING_NAME,
-            fields,
-        )
+        json_settings = self.create_json_settings()
+        # TODO: save to profile DB
+        # TODO: this won't have the LLM client, need to figure that out
         return True
+
+    def create_json_settings(self):
+        ui_settings = self.ui_tools.get_ui_settings()
+        keys, fields = self.two_col_form.get_inputs()
+        ui_settings[SettingsNames.RESPONSE_KEYS_SETTING_NAME] = keys
+        ui_settings[SettingsNames.DESTINATION_FIELD_SETTING_NAME] = fields
+
+        return ui_settings
 
     def are_settings_valid(self) -> bool:
         """
         Returns True if all required settings are present, False otherwise.
         Displays an error dialog if some are missing.
         """
-        settings = self.ui_tools.get_settings()
+        settings = self.ui_tools.get_ui_settings()
         if (
             SettingsNames.API_KEY_SETTING_NAME not in settings
             or not settings[SettingsNames.API_KEY_SETTING_NAME]

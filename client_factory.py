@@ -26,9 +26,8 @@ class ClientFactory:
 
     valid_clients = ["Claude", "OpenAI", "DeepSeek", "Gemini"]
 
-    def __init__(self, browser):
-        self.app_settings, self.client_name = get_settings()
-        self.client_name = "Claude" # TODO
+    def __init__(self, browser, profile_db):
+        self.client_name = profile_db.get_llm_client_name()
         self.browser = browser
         self.notes = [
             browser.mw.col.get_note(note_id) for note_id in browser.selectedNotes()
@@ -39,14 +38,14 @@ class ClientFactory:
             client_name in ClientFactory.valid_clients
         ), f"{client_name} is not implemented as a LLM Client."
         self.client_name = client_name
-        set_new_settings_group(self.app_settings, self.client_name)
 
     def get_client(self) -> LLMClient:
         """
         Factory method that returns the LLM Client implementation.
         Add an implementation for each Client you add.
         """
-        prompt_config = PromptConfig(self.app_settings)
+        profile_settings = self.profile_db.load_profile_data()
+        prompt_config = PromptConfig(profile_settings)
         if self.client_name == "OpenAI":
             llm_client = OpenAIClient(prompt_config)
             return llm_client
@@ -66,14 +65,16 @@ class ClientFactory:
         Factory method that returns the settings dialog for the user for each LLM.
         Client. Add an implementation for each Client you add.
         """
+        profile_settings = self.profile_db.load_profile_data()
+
         if self.client_name == "OpenAI":
-            return OpenAIDialog(self.app_settings, self.notes)
+            return OpenAIDialog(profile_settings, self.notes)
         if self.client_name == "DeepSeek":
-            return DeepSeekDialog(self.app_settings, self.notes)
+            return DeepSeekDialog(profile_settings, self.notes)
         if self.client_name == "Claude":
-            return ClaudeDialog(self.app_settings, self.notes)
+            return ClaudeDialog(profile_settings, self.notes)
         if self.client_name == "Gemini":
-            return GeminiDialog(self.app_settings, self.notes)
+            return GeminiDialog(profile_settings, self.notes)
         raise NotImplementedError(
             f"No user settings dialog implemented for {self.client_name}"
         )
@@ -94,7 +95,8 @@ class ClientFactory:
         This also refreshes the settings and the LLM client, as the user may have
         changed them.
         """
-        note_processor = NoteProcessor(notes, self.get_client(), self.app_settings)
+        profile_settings = self.profile_db.load_profile_data()
+        note_processor = NoteProcessor(notes, self.get_client(), profile_settings)
         dialog = ProgressDialog(note_processor, success_callback=self.mw.close)
         dialog.exec()
         browser.mw.reset()

@@ -1,18 +1,18 @@
+from typing import Dict
 from aqt.qt import (
     QComboBox,
     QFont,
     QLabel,
     QLineEdit,
-    QSettings,
     QTextEdit,
 )
 
 
 class UITools:
-    def __init__(self, settings: QSettings, max_width):
+    def __init__(self, settings: Dict[str, str], max_width):
         self.label_font = self.get_label_font()
         self.max_width = max_width
-        self.settings = settings
+        self.settings: Dict[str, str] = settings
         self.widgets = {}
 
     def get_label_font(self):
@@ -36,13 +36,13 @@ class UITools:
         combo_box = QComboBox()
         combo_box.setMaximumWidth(self.max_width)
         combo_box.addItems(items)
-        setting_value = self.settings.value(setting_name)
+        setting_value = self.settings.get(setting_name, "")
         combo_box.setCurrentText(setting_value)
         self.widgets[setting_name] = combo_box
         return combo_box
 
     def create_text_entry(self, setting_name, placeholder=""):
-        setting_value = self.settings.value(setting_name)
+        setting_value = self.settings.get(setting_name, "")
         entry = QLineEdit(setting_value)
         entry.setPlaceholderText(placeholder)
         entry.setMaximumWidth(self.max_width)
@@ -52,18 +52,13 @@ class UITools:
     def create_text_edit(self, setting_name, placeholder="", max_height=200):
         text_edit = QTextEdit()
         text_edit.setMinimumSize(self.max_width, max_height)
-        setting_value = self.settings.value(setting_name)
+        setting_value = self.settings.get(setting_name, "")
         text_edit.setText(setting_value)
         text_edit.setPlaceholderText(placeholder)
         self.widgets[setting_name] = text_edit
         return text_edit
 
-    def save_settings(self):
-        settings_values = self.get_settings()
-        for setting_name, value in settings_values.items():
-            self.settings.setValue(setting_name, value)
-
-    def get_settings(self):
+    def get_ui_settings(self):
         settings = {}
         for setting_name, widget in self.widgets.items():
             if isinstance(widget, QTextEdit):
