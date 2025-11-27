@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Optional
 
-from .settings import get_settings, set_new_settings_group, SettingsNames
+from .settings import get_settings, SettingsNames
 
 
 class ProfileDB:
@@ -10,21 +10,21 @@ class ProfileDB:
     """
 
     CURRENT_PROFILE_KEY = "current_profile_name"
+    DEFAULT_LLM = "Gemini"
     DEFAULT_PROFILE_NAME = "Default"
     PROFILE_LIST_KEY = "profile_templates_list"
     PROFILE_PREFIX = "profile_template_"
 
     def __init__(self):
-        self.app_settings, _ = get_settings()
+        self.app_settings = get_settings()
         self._create_default_profile_if_none_exists()
 
     def _create_default_profile_if_none_exists(self):
         """Ensure that a default profile exists."""
         profile_list = self.get_all_profiles()
-        if len(profile_list) == 0:
-            profile_list.append(self.DEFAULT_PROFILE_NAME)
-            self._save_all_profiles(profile_list)
-            self._save_profile_as_currently_selected(self.DEFAULT_PROFILE_NAME)
+
+        if not profile_list:
+            self.create_new_profile(self.DEFAULT_PROFILE_NAME)
 
     def _get_profile_data_config_key(self, profile_name: str) -> str:
         return f"{self.PROFILE_PREFIX}{profile_name}"
@@ -40,9 +40,6 @@ class ProfileDB:
         profile_list = self.app_settings.value(
             self.PROFILE_LIST_KEY, type="QStringList"
         )
-        assert (
-            profile_list is not None and len(profile_list) > 0
-        ), "There should be at least one profile."
         return profile_list
 
     def get_current_profile_name(self) -> str:
@@ -59,6 +56,7 @@ class ProfileDB:
         all_profiles.append(name)
         self._save_all_profiles(all_profiles)
         self._save_profile_as_currently_selected(name)
+        self.save_profile_data(name, {SettingsNames.LLM_CLIENT_NAME: self.DEFAULT_LLM})
 
     def delete_profile(self, name: str):
         all_profiles = self.get_all_profiles()
@@ -86,6 +84,9 @@ class ProfileDB:
         profile_name = self.get_current_profile_name()
         config_key = self._get_profile_data_config_key(profile_name)
         config_json = self.app_settings.value(config_key)
+        print(f"Loaded profile data for '{profile_name}' and key '{config_key}': {config_json}")
+        if config_json is None:
+            print("Config JSON is None, returning empty dict.")
         assert (
             config_json is not None
         ), f"Profile data for '{profile_name}' should exist."
