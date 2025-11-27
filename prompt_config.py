@@ -1,6 +1,6 @@
 import re
 
-from typing import Dict
+from typing import Any, Dict
 
 from .settings import SettingsNames
 
@@ -10,8 +10,8 @@ class PromptConfig:
     Stores all the user configuration needed to create a prompt and parse the response
     """
 
-    def __init__(self, settings: Dict[str, str]):
-        self.settings: Dict[str, str] = settings
+    def __init__(self, settings: Dict[str, Any]):
+        self.settings: Dict[str, Any] = settings
         if self.settings:
             self._load_settings()
 

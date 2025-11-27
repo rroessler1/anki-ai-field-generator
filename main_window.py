@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from .profiles import ProfileDB
 from .settings import SettingsNames
 from .ui_tools import UITools
+from .user_base_dialog import UserBaseDialog
 
 
 #  Main Window
@@ -89,14 +90,11 @@ class MainWindow(QMainWindow):
         client_ui_container.setLayout(self.client_ui_layout)
         self.layout.addWidget(client_ui_container)
         # Placeholder for the client sublayout
-        self.current_client_widget = None
+        self.current_client_widget: UserBaseDialog = None
 
         central_widget.setLayout(self.layout)
 
-        # Initialize default UI based on the selected client
-        self.client_selector.setCurrentIndex(
-            client_factory.valid_clients.index(client_factory.client_name)
-        )
+        # Initialize default UI based on the current profile
         self.switch_profile()
 
         buttons = (
@@ -129,18 +127,21 @@ class MainWindow(QMainWindow):
         # self.switch_profile()
 
     def save_profile(self):
+        self.profile_db.save_profile_data(
+            self.profile_selector.currentText(), self.get_all_user_json_settings()
+        )
+
+    def get_all_user_json_settings(self):
         json_settings = self.current_client_widget.create_json_settings()
         # TODO: this shouldn't be both here and in profiles.py, it's messy
         json_settings[SettingsNames.LLM_CLIENT_NAME] = (
             self.client_selector.currentText()
         )
-        self.profile_db.save_profile_data(
-            self.profile_selector.currentText(), json_settings
-        )
+        return json_settings
 
     def switch_profile(self):
         current_profile = self.profile_selector.currentText()
-        self.profile_db._save_user_active_profile(current_profile)
+        self.profile_db._save_profile_as_currently_selected(current_profile)
         llm_client_name = self.profile_db.get_llm_client_name()
         if llm_client_name:
             self.client_selector.setCurrentIndex(
@@ -149,14 +150,13 @@ class MainWindow(QMainWindow):
             self.switch_client()
 
     def switch_client(self):
-        client_name = self.client_selector.currentText()
         # Remove the existing client UI
         if self.current_client_widget:
             self.client_ui_layout.removeWidget(self.current_client_widget)
             # Not strictly necessary, but better for memory management
             self.current_client_widget.deleteLater()
 
-        self.client_factory.update_client(client_name)
+        self.client_factory.update_user_settings(self.get_all_user_json_settings())
         self.current_client_widget = self.client_factory.get_dialog()
         self.client_ui_layout.addWidget(self.current_client_widget)
         self.current_client_widget.show()

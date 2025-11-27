@@ -24,7 +24,7 @@ class ProfileDB:
         if len(profile_list) == 0:
             profile_list.append(self.DEFAULT_PROFILE_NAME)
             self._save_all_profiles(profile_list)
-            self._save_user_active_profile(self.DEFAULT_PROFILE_NAME)
+            self._save_profile_as_currently_selected(self.DEFAULT_PROFILE_NAME)
 
     def _get_profile_data_config_key(self, profile_name: str) -> str:
         return f"{self.PROFILE_PREFIX}{profile_name}"
@@ -32,7 +32,7 @@ class ProfileDB:
     def _save_all_profiles(self, profiles: List[str]) -> None:
         self.app_settings.setValue(self.PROFILE_LIST_KEY, profiles)
 
-    def _save_user_active_profile(self, profile_name: str) -> None:
+    def _save_profile_as_currently_selected(self, profile_name: str) -> None:
         self.app_settings.setValue(self.CURRENT_PROFILE_KEY, profile_name)
 
     def get_all_profiles(self) -> List[str]:
@@ -58,7 +58,7 @@ class ProfileDB:
             return
         all_profiles.append(name)
         self._save_all_profiles(all_profiles)
-        self._save_user_active_profile(name)
+        self._save_profile_as_currently_selected(name)
 
     def delete_profile(self, name: str):
         all_profiles = self.get_all_profiles()
@@ -76,7 +76,7 @@ class ProfileDB:
             all_profiles[idx] if idx < len(all_profiles) else all_profiles[-1]
         )
         self._save_all_profiles(all_profiles)
-        self._save_user_active_profile(new_active_profile_name)
+        self._save_profile_as_currently_selected(new_active_profile_name)
 
     def load_profile_data(self) -> Dict[str, str]:
         """

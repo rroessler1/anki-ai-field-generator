@@ -2,6 +2,8 @@
 Factory that returns the corrent LLM Client configurations.
 """
 
+from typing import Dict
+
 from .claude_client import ClaudeClient
 from .claude_dialog import ClaudeDialog
 from .deepseek_client import DeepseekClient
@@ -13,9 +15,10 @@ from .main_window import MainWindow
 from .note_processor import NoteProcessor
 from .openai_client import OpenAIClient
 from .openai_dialog import OpenAIDialog
+from .profiles import ProfileDB
 from .prompt_config import PromptConfig
 from .progress_bar import ProgressDialog
-from .settings import get_settings, set_new_settings_group
+from .settings import SettingsNames
 from .user_base_dialog import UserBaseDialog
 
 
@@ -26,12 +29,16 @@ class ClientFactory:
 
     valid_clients = ["Claude", "OpenAI", "DeepSeek", "Gemini"]
 
-    def __init__(self, browser, profile_db):
-        self.client_name = profile_db.get_llm_client_name()
+    def __init__(self, browser, user_settings: Dict[str, str]):
+        self.update_user_settings(user_settings)
         self.browser = browser
         self.notes = [
             browser.mw.col.get_note(note_id) for note_id in browser.selectedNotes()
         ]
+
+    def update_user_settings(self, user_settings: Dict[str, str]):
+        self.user_settings = user_settings
+        self.client_name = user_settings.get(SettingsNames.LLM_CLIENT_NAME)
 
     def update_client(self, client_name: str):
         assert (
@@ -44,8 +51,7 @@ class ClientFactory:
         Factory method that returns the LLM Client implementation.
         Add an implementation for each Client you add.
         """
-        profile_settings = self.profile_db.load_profile_data()
-        prompt_config = PromptConfig(profile_settings)
+        prompt_config = PromptConfig(self.user_settings)
         if self.client_name == "OpenAI":
             llm_client = OpenAIClient(prompt_config)
             return llm_client
@@ -65,16 +71,14 @@ class ClientFactory:
         Factory method that returns the settings dialog for the user for each LLM.
         Client. Add an implementation for each Client you add.
         """
-        profile_settings = self.profile_db.load_profile_data()
-
         if self.client_name == "OpenAI":
-            return OpenAIDialog(profile_settings, self.notes)
+            return OpenAIDialog(self.user_settings, self.notes)
         if self.client_name == "DeepSeek":
-            return DeepSeekDialog(profile_settings, self.notes)
+            return DeepSeekDialog(self.user_settings, self.notes)
         if self.client_name == "Claude":
-            return ClaudeDialog(profile_settings, self.notes)
+            return ClaudeDialog(self.user_settings, self.notes)
         if self.client_name == "Gemini":
-            return GeminiDialog(profile_settings, self.notes)
+            return GeminiDialog(self.user_settings, self.notes)
         raise NotImplementedError(
             f"No user settings dialog implemented for {self.client_name}"
         )
@@ -95,8 +99,7 @@ class ClientFactory:
         This also refreshes the settings and the LLM client, as the user may have
         changed them.
         """
-        profile_settings = self.profile_db.load_profile_data()
-        note_processor = NoteProcessor(notes, self.get_client(), profile_settings)
+        note_processor = NoteProcessor(notes, self.get_client(), self.user_settings)
         dialog = ProgressDialog(note_processor, success_callback=self.mw.close)
         dialog.exec()
         browser.mw.reset()
