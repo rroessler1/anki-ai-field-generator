@@ -156,13 +156,15 @@ class MainWindow(QMainWindow):
             self.switch_client()
 
     def switch_client(self):
+        # Grab the current UI settings
+        self.client_factory.update_user_settings(self.get_all_user_json_settings())
+
         # Remove the existing client UI
         if self.current_client_widget:
             self.client_ui_layout.removeWidget(self.current_client_widget)
             # Not strictly necessary, but better for memory management
             self.current_client_widget.deleteLater()
 
-        # self.client_factory.update_user_settings(self.get_all_user_json_settings())
         self.client_factory.update_client(
             self.client_selector.currentText()
         )
@@ -178,4 +180,5 @@ class MainWindow(QMainWindow):
         # This order is important, because the accept() saves settings
         # which the on_submit might need
         if self.current_client_widget.accept():
+            self.save_profile()
             on_submit()
