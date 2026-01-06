@@ -9,6 +9,7 @@ from .prompt_config import PromptConfig
 
 
 class OpenAIClient(LLMClient):
+    DEFAULT_URL = "https://api.openai.com/v1/chat/completions"
     SERVICE_NAME = "OpenAI"
 
     def __init__(self, prompt_config: PromptConfig):
@@ -25,7 +26,7 @@ class OpenAIClient(LLMClient):
     def call(self, prompts: list[str]) -> dict:
         if not prompts:
             raise Exception("Empty list of prompts given")
-        url = "https://api.openai.com/v1/chat/completions"
+        url = self.get_url()
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.prompt_config.api_key}",
@@ -82,6 +83,17 @@ class OpenAIClient(LLMClient):
             ) from exc
 
         return self.parse_json_response(response=response.json())
+
+    def get_url(self) -> str:
+        base_url = (self.prompt_config.base_url or "").strip()
+        if not base_url:
+            return OpenAIClient.DEFAULT_URL
+
+        if "chat/completions" not in base_url:
+            if not base_url.endswith("/"):
+                base_url += "/"
+            base_url += "chat/completions"
+        return base_url
 
     def wait_if_needed(self):
         """Wait until the global `next_request_time` allows a new request."""

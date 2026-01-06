@@ -21,6 +21,10 @@ class ClaudeDialog(UserBaseDialog):
         ]
 
     @property
+    def base_url(self):
+        return "https://api.anthropic.com/v1/messages"
+
+    @property
     def system_prompt_description(self):
         return (
             'Enter the System Prompt to give Claude a "role".\n'

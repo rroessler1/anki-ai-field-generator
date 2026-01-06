@@ -8,6 +8,12 @@ This is not a standalone script, it's a plugin for Anki which can be downloaded 
 - Supports Claude (Anthropic), ChatGPT (OpenAI), Gemini (Google), and Deepseek models.
 - Completely free! (You create your own API key and pay for LLM usage)
 
+## New in This Fork
+
+This is a fork of [rroessler1/anki-ai-field-generator](https://github.com/rroessler1/anki-ai-field-generator) with the following enhancements:
+- **Custom Base URL Support**: Use any OpenAI-compatible API endpoint (e.g., local LLMs, third-party providers, proxy servers)
+- **Custom Model Names**: Dropdown now allows entering custom model names not in the predefined list
+
 ## Quickstart:
 1. Install this plugin. (Open Anki. Tools -> Add-ons -> Get Addons -> Enter code: 643253121)
 1. In the Card Browser, select the cards you want to modify (tip: Shift+Click to select many or Ctrl+A to select all)

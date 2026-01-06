@@ -10,6 +10,7 @@ from .prompt_config import PromptConfig
 
 class GeminiClient(LLMClient):
     SERVICE_NAME = "Google Gemini"
+    DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def __init__(self, prompt_config: PromptConfig):
         super(LLMClient, self).__init__()
@@ -27,7 +28,7 @@ class GeminiClient(LLMClient):
             raise Exception("Empty list of prompts given")
 
         # Gemini API endpoint
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.prompt_config.model}:generateContent"
+        url = self.get_url()
 
         headers = {
             "Content-Type": "application/json",
@@ -50,7 +51,7 @@ class GeminiClient(LLMClient):
                 self.prompt_config.response_keys
             ),
         }
-        data["generationConfig"]["maxOutputTokens"] = 1024
+        data["generationConfig"]["maxOutputTokens"] = 5120
 
         # Add system instruction if available
         if (
@@ -102,6 +103,24 @@ class GeminiClient(LLMClient):
                     f"Error: {response.status_code} {response.reason}\n{response.text}"
                 ) from exc
         raise ExternalException("Code is unreachable.")
+
+    def get_url(self) -> str:
+        base_url = (self.prompt_config.base_url or "").strip()
+        if not base_url:
+            base_url = GeminiClient.DEFAULT_BASE_URL
+
+        if ":generateContent" in base_url:
+            return base_url
+
+        base_url = base_url.rstrip("/")
+
+        if "/models/" in base_url and not base_url.endswith("/models"):
+            return f"{base_url}:generateContent"
+
+        if not base_url.endswith("/models"):
+            base_url = f"{base_url}/models"
+
+        return f"{base_url}/{self.prompt_config.model}:generateContent"
 
     def wait_if_needed(self):
         """Wait until the global `next_request_time` allows a new request."""
