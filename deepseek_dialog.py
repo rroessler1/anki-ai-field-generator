@@ -12,6 +12,10 @@ class DeepSeekDialog(UserBaseDialog):
         return ["deepseek-chat", "deepseek-reasoner"]
 
     @property
+    def base_url(self):
+        return "https://api.deepseek.com/chat/completions"
+
+    @property
     def system_prompt_description(self):
         return (
             "Enter the System Prompt that is the overall system instructions.\n"

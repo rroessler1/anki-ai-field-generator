@@ -26,6 +26,10 @@ class OpenAIDialog(UserBaseDialog):
         ]
 
     @property
+    def base_url(self):
+        return "https://api.openai.com/v1"
+
+    @property
     def system_prompt_description(self):
         return (
             "Enter the System Prompt that is the overall system instructions.\n"

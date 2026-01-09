@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from anki.notes import Note as AnkiNote
 from aqt.qt import QSettings
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -27,6 +29,7 @@ class NoteProcessor(QThread):
         self.notes = notes
         self.total_items = len(notes)
         self.client = client
+        self.settings = settings
         self.note_fields = settings.value(
             SettingsNames.DESTINATION_FIELD_SETTING_NAME, type="QStringList"
         )
@@ -38,23 +41,53 @@ class NoteProcessor(QThread):
 
     def run(self):
         """
-        Processes all notes sequentially, by calling the LLM client.
+        Processes all notes concurrently, by calling the LLM client.
         """
+        max_rpm = self._get_max_rpm()
+        max_workers = max(1, max_rpm)
+        prompts = []
         for i in range(self.current_index, self.total_items):
-            note = self.notes[self.current_index]
+            note = self.notes[i]
             prompt = self.client.get_user_prompt(note, self.missing_field_is_error)
-            self.progress_updated.emit(
-                int((i / self.total_items) * 100),
-                f"Processing: {prompt}",
-            )
-            try:
-                response = self.client.call([prompt])
-            except ExternalException as e:
-                self.error.emit(str(e))
-                return
-            for note_field, response_key in zip(self.note_fields, self.response_keys):
-                note[note_field] = response[response_key]
-            note.col.update_note(note)
-            self.current_index += 1
+            prompts.append((note, prompt))
 
+        completed = 0
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(self.client.call, [prompt]): (note, prompt)
+                for note, prompt in prompts
+            }
+            for future in as_completed(futures):
+                note, prompt = futures[future]
+                try:
+                    response = future.result()
+                except ExternalException as e:
+                    for pending in futures:
+                        if not pending.done():
+                            pending.cancel()
+                    self.error.emit(str(e))
+                    return
+                for note_field, response_key in zip(
+                    self.note_fields, self.response_keys
+                ):
+                    note[note_field] = response[response_key]
+                note.col.update_note(note)
+                completed += 1
+                self.progress_updated.emit(
+                    int((completed / self.total_items) * 100),
+                    f"Processed: {prompt}",
+                )
+
+        self.current_index = self.total_items
         self.finished.emit()
+
+    def _get_max_rpm(self) -> int:
+        value = self.settings.value(
+            SettingsNames.MAX_RPM_SETTING_NAME,
+            defaultValue=10,
+            type=int,
+        )
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 10

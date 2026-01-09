@@ -17,6 +17,10 @@ class GeminiDialog(UserBaseDialog):
         ]
 
     @property
+    def base_url(self):
+        return "https://generativelanguage.googleapis.com/v1beta/models"
+
+    @property
     def system_prompt_description(self):
         return (
             "Enter the System Prompt that is the overall system instructions.\n"

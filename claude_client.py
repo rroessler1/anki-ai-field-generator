@@ -9,6 +9,7 @@ from .prompt_config import PromptConfig
 
 class ClaudeClient(LLMClient):
     SERVICE_NAME = "Anthropic"
+    DEFAULT_URL = "https://api.anthropic.com/v1/messages"
 
     def __init__(self, prompt_config: PromptConfig):
         super(LLMClient, self).__init__()
@@ -24,7 +25,7 @@ class ClaudeClient(LLMClient):
     def call(self, prompts: list[str]) -> dict:
         if not prompts:
             raise Exception("Empty list of prompts given")
-        url = "https://api.anthropic.com/v1/messages"
+        url = self.get_url()
         headers = {
             "Content-Type": "application/json",
             "x-api-key": f"{self.prompt_config.api_key}",
@@ -78,6 +79,17 @@ class ClaudeClient(LLMClient):
             ) from exc
 
         return self.parse_json_response(response=response.json())
+
+    def get_url(self) -> str:
+        base_url = (self.prompt_config.base_url or "").strip()
+        if not base_url:
+            return ClaudeClient.DEFAULT_URL
+
+        if "messages" not in base_url:
+            if not base_url.endswith("/"):
+                base_url += "/"
+            base_url += "messages"
+        return base_url
 
     def wait_if_needed(self):
         """Wait until the global `next_request_time` allows a new request."""

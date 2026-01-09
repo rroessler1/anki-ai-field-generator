@@ -22,7 +22,7 @@ class DeepseekClient(LLMClient):
     def call(self, prompts: list[str]) -> dict:
         if not prompts:
             raise Exception("Empty list of prompts given")
-        url = DeepseekClient.URL
+        url = self.get_url()
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.prompt_config.api_key}",
@@ -65,6 +65,17 @@ class DeepseekClient(LLMClient):
             ) from exc
 
         return self.parse_json_response(response=response.json())
+
+    def get_url(self) -> str:
+        base_url = (self.prompt_config.base_url or "").strip()
+        if not base_url:
+            return DeepseekClient.URL
+
+        if "chat/completions" not in base_url:
+            if not base_url.endswith("/"):
+                base_url += "/"
+            base_url += "chat/completions"
+        return base_url
 
     def parse_json_response(self, response) -> dict:
         message_content = response["choices"][0]["message"]["content"]
