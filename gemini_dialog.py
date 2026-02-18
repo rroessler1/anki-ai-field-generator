@@ -1,3 +1,4 @@
+from .constants import GEMINI_BASE_URL
 from .user_base_dialog import UserBaseDialog
 
 
@@ -18,7 +19,7 @@ class GeminiDialog(UserBaseDialog):
 
     @property
     def base_url(self):
-        return "https://generativelanguage.googleapis.com/v1beta/models"
+        return GEMINI_BASE_URL
 
     @property
     def system_prompt_description(self):

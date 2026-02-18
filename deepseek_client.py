@@ -1,13 +1,13 @@
 import json
 import requests
 
+from .constants import DEEPSEEK_BASE_URL
 from .exceptions import ExternalException
 from .llm_client import LLMClient
 from .prompt_config import PromptConfig
 
 
 class DeepseekClient(LLMClient):
-    URL = "https://api.deepseek.com/chat/completions"
     SERVICE_NAME = "DeepSeek"
 
     def __init__(self, prompt_config: PromptConfig):
@@ -69,12 +69,7 @@ class DeepseekClient(LLMClient):
     def get_url(self) -> str:
         base_url = (self.prompt_config.base_url or "").strip()
         if not base_url:
-            return DeepseekClient.URL
-
-        if "chat/completions" not in base_url:
-            if not base_url.endswith("/"):
-                base_url += "/"
-            base_url += "chat/completions"
+            return DEEPSEEK_BASE_URL
         return base_url
 
     def parse_json_response(self, response) -> dict:
