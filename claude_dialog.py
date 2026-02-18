@@ -1,3 +1,4 @@
+from .constants import CLAUDE_BASE_URL
 from .user_base_dialog import UserBaseDialog
 
 
@@ -22,7 +23,7 @@ class ClaudeDialog(UserBaseDialog):
 
     @property
     def base_url(self):
-        return "https://api.anthropic.com/v1/messages"
+        return CLAUDE_BASE_URL
 
     @property
     def system_prompt_description(self):

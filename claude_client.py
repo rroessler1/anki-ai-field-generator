@@ -1,6 +1,7 @@
 import time
 import requests
 
+from .constants import CLAUDE_BASE_URL
 from .exceptions import ExternalException
 from .llm_client import LLMClient
 from .response_utils import get_anthropic_tool
@@ -9,7 +10,6 @@ from .prompt_config import PromptConfig
 
 class ClaudeClient(LLMClient):
     SERVICE_NAME = "Anthropic"
-    DEFAULT_URL = "https://api.anthropic.com/v1/messages"
 
     def __init__(self, prompt_config: PromptConfig):
         super(LLMClient, self).__init__()
@@ -83,12 +83,7 @@ class ClaudeClient(LLMClient):
     def get_url(self) -> str:
         base_url = (self.prompt_config.base_url or "").strip()
         if not base_url:
-            return ClaudeClient.DEFAULT_URL
-
-        if "messages" not in base_url:
-            if not base_url.endswith("/"):
-                base_url += "/"
-            base_url += "messages"
+            return CLAUDE_BASE_URL
         return base_url
 
     def wait_if_needed(self):

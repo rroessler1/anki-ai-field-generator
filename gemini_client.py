@@ -2,6 +2,7 @@ import time
 import requests
 import json
 
+from .constants import GEMINI_BASE_URL
 from .exceptions import ExternalException
 from .llm_client import LLMClient
 from .response_utils import get_gemini_response_format
@@ -10,7 +11,6 @@ from .prompt_config import PromptConfig
 
 class GeminiClient(LLMClient):
     SERVICE_NAME = "Google Gemini"
-    DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def __init__(self, prompt_config: PromptConfig):
         super(LLMClient, self).__init__()
@@ -107,7 +107,7 @@ class GeminiClient(LLMClient):
     def get_url(self) -> str:
         base_url = (self.prompt_config.base_url or "").strip()
         if not base_url:
-            base_url = GeminiClient.DEFAULT_BASE_URL
+            base_url = GEMINI_BASE_URL
 
         if ":generateContent" in base_url:
             return base_url

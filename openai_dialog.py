@@ -1,3 +1,4 @@
+from .constants import OPENAI_BASE_URL
 from .user_base_dialog import UserBaseDialog
 
 
@@ -27,7 +28,7 @@ class OpenAIDialog(UserBaseDialog):
 
     @property
     def base_url(self):
-        return "https://api.openai.com/v1"
+        return OPENAI_BASE_URL
 
     @property
     def system_prompt_description(self):

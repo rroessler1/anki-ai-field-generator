@@ -2,6 +2,7 @@ import json
 import time
 import requests
 
+from .constants import OPENAI_BASE_URL
 from .exceptions import ExternalException
 from .llm_client import LLMClient
 from .response_utils import get_openai_response_format
@@ -9,7 +10,6 @@ from .prompt_config import PromptConfig
 
 
 class OpenAIClient(LLMClient):
-    DEFAULT_URL = "https://api.openai.com/v1/chat/completions"
     SERVICE_NAME = "OpenAI"
 
     def __init__(self, prompt_config: PromptConfig):
@@ -87,12 +87,7 @@ class OpenAIClient(LLMClient):
     def get_url(self) -> str:
         base_url = (self.prompt_config.base_url or "").strip()
         if not base_url:
-            return OpenAIClient.DEFAULT_URL
-
-        if "chat/completions" not in base_url:
-            if not base_url.endswith("/"):
-                base_url += "/"
-            base_url += "chat/completions"
+            return OPENAI_BASE_URL
         return base_url
 
     def wait_if_needed(self):

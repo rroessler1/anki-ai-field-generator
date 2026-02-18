@@ -70,7 +70,10 @@ class NoteProcessor(QThread):
                 for note_field, response_key in zip(
                     self.note_fields, self.response_keys
                 ):
-                    note[note_field] = response[response_key]
+                    field_value = response[response_key]
+                    if isinstance(field_value, str):
+                        field_value = field_value.replace("\n", "<br>")
+                    note[note_field] = field_value
                 note.col.update_note(note)
                 completed += 1
                 self.progress_updated.emit(
