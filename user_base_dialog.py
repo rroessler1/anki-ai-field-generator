@@ -54,7 +54,7 @@ class UserBaseDialog(QWidget, metaclass=MyMeta):
         self.add_models_dropdown(left_layout)
         self.add_api_key(left_layout)
         self.add_base_url(left_layout)
-        self.add_max_rpm(left_layout)
+        self.add_max_concurrent_requests(left_layout)
         self.add_system_prompt(
             left_layout, self.system_prompt_description, self.system_prompt_placeholder
         )
@@ -183,11 +183,11 @@ class UserBaseDialog(QWidget, metaclass=MyMeta):
             )
         )
 
-    def add_max_rpm(self, layout):
-        layout.addWidget(self.ui_tools.create_label("Max RPM (concurrent requests):"))
+    def add_max_concurrent_requests(self, layout):
+        layout.addWidget(self.ui_tools.create_label("Max Concurrent Requests:"))
         layout.addWidget(
             self.ui_tools.create_text_entry(
-                SettingsNames.MAX_RPM_SETTING_NAME,
+                SettingsNames.MAX_CONCURRENT_REQUESTS_SETTING_NAME,
                 placeholder="10",
                 default_value="10",
             )

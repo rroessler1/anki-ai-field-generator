@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Anki AI - Update Your Flashcards with AI")
         screen = QApplication.primaryScreen().geometry()
         width = 1100
-        height = 800
+        height = 900
         x = (screen.width() - width) // 2
         y = (screen.height() - height) // 2
         self.setGeometry(x, y, width, height)

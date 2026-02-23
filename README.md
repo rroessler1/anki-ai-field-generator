@@ -136,18 +136,28 @@ If you accidentally "expose" your API key (text it to someone by accident or wha
 
 **Answer quality:** they're all pretty good, and it depends more on your prompt engineering
 
-**Speed:** Claude is the fastest, as it allows 50 calls per minute, whereas OpenAI only allows 3 per minute and 200 per day (from the beginner tier). Gemini has a nice free tier for the "Flash-Light Preview" model with 15 calls per minute and 1000 per day.
+**Speed:** If you add $5 of credit, you can use Tier 1 from Gemini, OpenAI, or Claude, which give you 300, 500, and 50 requests per minute (RPM), respectively. Then, speed is affected by which specific model you choose. They should all be fast enough for normal use cases.
 
-**Cost:** OpenAI's gpt-4o-mini model is currently the cheapest.
+**Cost:** Gemini has a completely free tier for the "Flash-Light" model with 15 calls per minute and 1000 per day. Otherwise, gemini-2.5-flash-lite and gpt-4.1-nano are the cheapest. As of February 2026 they are $0.10 per 1 million input tokens and $0.40 per 1 million output tokens.
 
 </details>
 <details>
-<summary><b>Why is the OpenAI model so slow / why am I getting rate-limited?</b></summary>
+<summary><b>Can I use a custom LLM?</b></summary>
 <br/>
-Unfortunately when you first sign up for OpenAI you can only make 3 calls per minute (and 200 per day). The plugin handles this, sadly just by "pausing" for 20 seconds at a time.
 
-Once you spend $5, then you can make 500 calls per minute. I don't know of any way to just automatically spend $5 to get to the next Tier.
+Yes! The plugin supports a custom "Base URL", so you can use a LLM or service that matches the OpenAI API, for example OpenRouter.  You can also type in your own custom model name to use.
 
+(Note: this is a new feature as of February 2026 that has not been extensively tested, please contact me at https://github.com/rroessler1/anki-ai-field-generator/issues if there are problems.)
+
+</details>
+<details>
+<summary><b>Why are the models so slow / why am I getting rate-limited?</b></summary>
+<br/>
+This used to be a problem, but now it should happen less as most providers have upgraded their maximum Requests per Minute (RPMs).
+
+If you are using the Gemini free tier, you are limited to 15 calls per minute and 1000 per day. Adding $5 of credit increases this to Tier 1 and 1500 RPMs. If you have $5 of credit for OpenAI or Claude, you get 500 or 50 RPMs, respectively (or less if you use a more complex model).
+
+If you keep getting rate-limited in the plugin, you can reduce the number of "Max Concurrent Requests".
 </details>
 
 <details>
@@ -177,16 +187,16 @@ Please submit them to the GitHub repo here: https://github.com/rroessler1/anki-a
 <details>
 <summary><b>How can I support the creator of this plugin?</b></summary>
 <br/>
-I'd be very grateful! You can buy me a coffee here: https://buymeacoffee.com/rroessler
+Please upvote the plugin here: https://ankiweb.net/shared/info/643253121 , that helps other people discover it and encourages me to keep it maintained. I really appreciate every upvote.
 
-And please upvote it here: https://ankiweb.net/shared/info/643253121 , that helps other people discover it and encourages me to keep it maintained.
+If you would like to financially donate, you can buy me a coffee here: https://buymeacoffee.com/rroessler
 </details>
 
 ## Pricing
 
 All the companies have models are relatively inexpensive, and have the pricing information on their website. But specifically:
 
-- The cheapest models currently are Anthropic's claude-3-5-haiku, Google's gemini-2.5-flash-light-preview, DeepSeek's deepseek-chat, and OpenAI's gpt-4o-mini.
+- The cheapest models currently are Anthropic's claude-3-5-haiku, Google's gemini-2.5-flash-lite, DeepSeek's deepseek-chat, and OpenAI's gpt-4.1-nano.
 - More advanced models might cost quite a bit more.
 - Pricing is based on number of tokens in the input and the output. A "token" is generally a few letters.
 - I tested with the same prompt, and Claude uses 3x the number of tokens as OpenAI and Deepseek. This makes Claude more expensive.
@@ -201,8 +211,6 @@ Using the example prompts shown in the UI:
 **DeepSeek**: One flashcard uses 195 tokens, so 1 million tokens = 5100 cards = $0.27 USD
 
 **Claude**: One flashcard uses 660 tokens, so 1 million tokens = 1500 cards = $0.80 USD
-
-So Claude is relatively more expensive, but it's the fastest. Once you are past the basic tier on OpenAI (once you spend $5), it becomes equivalently fast.
 
 </details>
 

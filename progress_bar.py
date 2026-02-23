@@ -72,7 +72,7 @@ class ProgressDialog(QDialog):
 
     def cancel(self):
         if self.worker.isRunning():
-            self.worker.terminate()  # Terminate the thread (not recommended for critical operations)
+            self.worker.cancel()  # Request graceful cancellation
         self.reject()  # Close the dialog
 
     def on_success(self):

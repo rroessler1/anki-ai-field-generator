@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 
 from anki.notes import Note as AnkiNote
 from aqt.qt import QSettings
@@ -37,56 +37,109 @@ class NoteProcessor(QThread):
             SettingsNames.RESPONSE_KEYS_SETTING_NAME, type="QStringList"
         )
         self.missing_field_is_error = missing_field_is_error
-        self.current_index = 0
+        self.completed_indices = (
+            set()
+        )  # Track which notes have been successfully processed
+        self._cancelled = False  # Flag for graceful cancellation
+
+    def cancel(self):
+        """Request graceful cancellation of processing."""
+        self._cancelled = True
 
     def run(self):
         """
         Processes all notes concurrently, by calling the LLM client.
+        Uses a sliding window pattern to avoid loading all prompts into memory.
         """
-        max_rpm = self._get_max_rpm()
-        max_workers = max(1, max_rpm)
-        prompts = []
-        for i in range(self.current_index, self.total_items):
-            note = self.notes[i]
-            prompt = self.client.get_user_prompt(note, self.missing_field_is_error)
-            prompts.append((note, prompt))
+        self._cancelled = False
+        max_concurrent_requests = self._get_max_concurrent_requests()
+        max_workers = max(1, max_concurrent_requests)
 
-        completed = 0
+        completed = len(self.completed_indices)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {
-                executor.submit(self.client.call, [prompt]): (note, prompt)
-                for note, prompt in prompts
-            }
-            for future in as_completed(futures):
-                note, prompt = futures[future]
+            futures = {}
+            note_iter = iter(
+                (i, note)
+                for i, note in enumerate(self.notes)
+                if i not in self.completed_indices  # Skip already-completed notes
+            )
+
+            # Fill initial batch (buffer of 2x workers to keep threads busy)
+            for _ in range(min(max_workers * 2, self.total_items)):
                 try:
-                    response = future.result()
-                except ExternalException as e:
+                    i, note = next(note_iter)
+                    prompt = self.client.get_user_prompt(
+                        note, self.missing_field_is_error
+                    )
+                    future = executor.submit(self.client.call, [prompt])
+                    futures[future] = (i, note, prompt)
+                except StopIteration:
+                    break
+
+            # Process completions and submit new work
+            while futures:
+                done, _ = wait(futures, return_when=FIRST_COMPLETED)
+
+                for future in done:
+                    i, note, prompt = futures[future]
+                    try:
+                        response = future.result()
+                    except ExternalException as e:
+                        # Cancel all pending futures
+                        for pending in futures:
+                            if not pending.done():
+                                pending.cancel()
+                        self.error.emit(str(e))
+                        return
+
+                    # Update note fields
+                    for note_field, response_key in zip(
+                        self.note_fields, self.response_keys
+                    ):
+                        field_value = response[response_key]
+                        if isinstance(field_value, str):
+                            field_value = field_value.replace("\n", "<br>")
+                        note[note_field] = field_value
+                    note.col.update_note(note)
+                    self.completed_indices.add(
+                        i
+                    )  # Mark this note as successfully completed
+
+                    completed += 1
+                    self.progress_updated.emit(
+                        int((completed / self.total_items) * 100),
+                        f"Processed: {prompt}",
+                    )
+
+                    # Remove completed future
+                    del futures[future]
+
+                # Check for cancellation AFTER saving completed work
+                if self._cancelled:
+                    # Cancel all pending futures
                     for pending in futures:
                         if not pending.done():
                             pending.cancel()
-                    self.error.emit(str(e))
                     return
-                for note_field, response_key in zip(
-                    self.note_fields, self.response_keys
-                ):
-                    field_value = response[response_key]
-                    if isinstance(field_value, str):
-                        field_value = field_value.replace("\n", "<br>")
-                    note[note_field] = field_value
-                note.col.update_note(note)
-                completed += 1
-                self.progress_updated.emit(
-                    int((completed / self.total_items) * 100),
-                    f"Processed: {prompt}",
-                )
 
-        self.current_index = self.total_items
+                # Submit new work for each completed future
+                for _ in range(len(done)):
+                    try:
+                        i, note = next(note_iter)
+                        prompt = self.client.get_user_prompt(
+                            note, self.missing_field_is_error
+                        )
+                        new_future = executor.submit(self.client.call, [prompt])
+                        futures[new_future] = (i, note, prompt)
+                    except StopIteration:
+                        break
+
+        self.completed_indices.clear()  # Clear on full completion
         self.finished.emit()
 
-    def _get_max_rpm(self) -> int:
+    def _get_max_concurrent_requests(self) -> int:
         value = self.settings.value(
-            SettingsNames.MAX_RPM_SETTING_NAME,
+            SettingsNames.MAX_CONCURRENT_REQUESTS_SETTING_NAME,
             defaultValue=10,
             type=int,
         )
