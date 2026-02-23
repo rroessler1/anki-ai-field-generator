@@ -1,3 +1,4 @@
+import threading
 import time
 import requests
 import json
@@ -18,6 +19,7 @@ class GeminiClient(LLMClient):
         self.debug = False
         self.next_request_time = 0
         self.max_retries = 5
+        self._rate_limit_lock = threading.Lock()
 
     @property
     def prompt_config(self) -> PromptConfig:
@@ -74,7 +76,8 @@ class GeminiClient(LLMClient):
                 ) from exc
             try:
                 response.raise_for_status()
-                self.next_request_time = 0
+                with self._rate_limit_lock:
+                    self.next_request_time = 0
                 return self.parse_json_response(response=response.json())
             except requests.exceptions.HTTPError as exc:
                 if response.status_code == 401:
@@ -84,7 +87,8 @@ class GeminiClient(LLMClient):
                     ) from exc
                 if response.status_code == 429:
                     retry_after_time = 4 * (2**i)
-                    self.next_request_time = time.time() + retry_after_time + 0.5
+                    with self._rate_limit_lock:
+                        self.next_request_time = time.time() + retry_after_time + 0.5
                     if i == self.max_retries - 1:
                         raise ExternalException(
                             'Received a "429 Client Error: Too Many Requests" response. '
@@ -124,11 +128,12 @@ class GeminiClient(LLMClient):
 
     def wait_if_needed(self):
         """Wait until the global `next_request_time` allows a new request."""
-        now = time.time()
-        if now < self.next_request_time:
-            wait_time = self.next_request_time - now
-            print(f"Waiting {wait_time:.2f} seconds before the next request.")
-            time.sleep(wait_time)
+        with self._rate_limit_lock:
+            now = time.time()
+            if now < self.next_request_time:
+                wait_time = self.next_request_time - now
+                print(f"Waiting {wait_time:.2f} seconds before the next request.")
+                time.sleep(wait_time)
 
     def parse_json_response(self, response) -> dict:
         if self.debug:

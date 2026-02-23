@@ -1,3 +1,4 @@
+import threading
 import time
 import requests
 
@@ -17,6 +18,7 @@ class ClaudeClient(LLMClient):
         self.debug = False
         self.next_request_time = 0
         self.retry_after_time = 0
+        self._rate_limit_lock = threading.Lock()
 
     @property
     def prompt_config(self) -> PromptConfig:
@@ -59,7 +61,8 @@ class ClaudeClient(LLMClient):
 
         try:
             response.raise_for_status()
-            self.next_request_time = time.time() + self.retry_after_time + 0.05
+            with self._rate_limit_lock:
+                self.next_request_time = time.time() + self.retry_after_time + 0.05
         except requests.exceptions.HTTPError as exc:
             if response.status_code == 401:
                 raise ExternalException(
@@ -67,8 +70,9 @@ class ClaudeClient(LLMClient):
                     "invalid."
                 ) from exc
             if response.status_code == 429:
-                self.retry_after_time = int(response.headers.get("Retry-After", 20))
-                self.next_request_time = time.time() + self.retry_after_time + 0.05
+                with self._rate_limit_lock:
+                    self.retry_after_time = int(response.headers.get("Retry-After", 20))
+                    self.next_request_time = time.time() + self.retry_after_time + 0.05
                 raise ExternalException(
                     'Received a "429 Client Error: Too Many Requests" response. '
                     "We will start sending one request every "
@@ -88,11 +92,12 @@ class ClaudeClient(LLMClient):
 
     def wait_if_needed(self):
         """Wait until the global `next_request_time` allows a new request."""
-        now = time.time()
-        if now < self.next_request_time:
-            wait_time = self.next_request_time - now
-            print(f"Waiting {wait_time:.2f} seconds before the next request.")
-            time.sleep(wait_time)
+        with self._rate_limit_lock:
+            now = time.time()
+            if now < self.next_request_time:
+                wait_time = self.next_request_time - now
+                print(f"Waiting {wait_time:.2f} seconds before the next request.")
+                time.sleep(wait_time)
 
     def parse_json_response(self, response) -> dict:
         results = response["content"][0]["input"]
